@@ -71,7 +71,11 @@ def train(config: ProcessConfig, epochs=50):
 
             gloss += loss_gen
             if (i + 1) % 100 == 0:
-                eval(config, generator, str(batch).zfill(3)+'_'+str(i).zfill(5))
+                eval(
+                    config, generator, 
+                    str(batch).zfill(3)+'_'+str(i).zfill(5),
+                    featulizer
+                )
                 print("Step:", i + 1, end=' ')
                 print("Generator loss:", gloss/100, end=' ')
                 gloss = 0
