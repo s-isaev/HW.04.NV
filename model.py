@@ -84,3 +84,28 @@ class Generator(torch.nn.Module):
             x = upsample(x)
         x = self.final(x).squeeze(1)
         return torch.tanh(x)
+
+class Disc(torch.nn.Module):
+    def __init__(self, config: ProcessConfig):
+        super(Disc, self).__init__()
+
+        self.conv1 = nn.Conv1d(1, 30, 5, padding='same')
+        self.conv2 = nn.Conv1d(30, 30, 5, padding='same')
+        self.conv3 = nn.Conv1d(30, 30, 5, padding='same')
+        self.conv4 = nn.Conv1d(30, 30, 5, padding='same')
+        self.conv5 = nn.Conv1d(30, 30, 5, padding='same')
+        self.conv6 = nn.Conv1d(30, 20, 5, padding='same')
+        self.conv7 = nn.Conv1d(20, 10, 5, padding='same')
+        self.final = nn.Conv1d(10, 1, 5, padding='same')
+
+    def forward(self, x):
+        x = x.unsqueeze(1)
+        x = F.leaky_relu(self.conv1(x))
+        x = F.leaky_relu(self.conv2(x))
+        x = F.leaky_relu(self.conv3(x))
+        x = F.leaky_relu(self.conv4(x))
+        x = F.leaky_relu(self.conv5(x))
+        x = F.leaky_relu(self.conv6(x))
+        x = F.leaky_relu(self.conv7(x))
+        x = self.final(x).squeeze(1).mean(axis=1)
+        return torch.sigmoid(x)
