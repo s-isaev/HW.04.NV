@@ -73,7 +73,7 @@ def train(config: ProcessConfig, epochs=50):
             if (i + 1) % 100 == 0:
                 eval(
                     config, generator, 
-                    str(batch).zfill(3)+'_'+str(i).zfill(5),
+                    str(epoch).zfill(3)+'_'+str(i).zfill(5),
                     featulizer
                 )
                 print("Step:", i + 1, end=' ')
