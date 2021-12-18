@@ -78,6 +78,7 @@ def train(config: ProcessConfig, epochs=50):
                 )
                 print("Step:", i + 1, end=' ')
                 print("Generator loss:", gloss/100, end=' ')
+                print()
                 gloss = 0
             i += 1
 
