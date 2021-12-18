@@ -1,3 +1,4 @@
+from librosa.filters import mel
 from torch import optim
 from config import ProcessConfig
 from dataset import MelSpectrogramConfig, MelSpectrogram, LJSpeechDataset, LJSpeechCollator
@@ -29,6 +30,7 @@ fake_label = 0.
 
 def train_batch(config: ProcessConfig, batch, featurizer, generator, optim_g, disc, optim_d):
     generator.train()
+    disc.train()
 
     mels = featurizer(batch.waveform.to(config.device))[:,:,:-1]
     wavs = batch.waveform.to(config.device)[:, :mels.shape[2]*256]
@@ -86,6 +88,8 @@ def train(config: ProcessConfig, epochs=50):
 
     os.system('rm -r eval')
     os.system('mkdir eval')
+    os.system('rm -r infer_res')
+    os.system('mkdir infer_res')
 
     i = 0
     for epoch in range(epochs):
@@ -99,6 +103,11 @@ def train(config: ProcessConfig, epochs=50):
             gloss += loss_gen
             dloss += loss_disc
             if (i + 1) % 100 == 0:
+                infer(
+                    config, generator,
+                    str(epoch).zfill(3)+'_'+str(i+1).zfill(7),
+                    featulizer
+                )
                 eval(
                     config, generator, 
                     str(epoch).zfill(3)+'_'+str(i+1).zfill(7),
@@ -126,3 +135,18 @@ def eval(config: ProcessConfig, model, name: str, featulizer):
     for i in range(wavs.shape[0]):
         wav = wavs[i].cpu().numpy()
         scipy.io.wavfile.write("eval/"+name+'_'+str(i) + '.wav', 22050, wav)
+
+def infer(config: ProcessConfig, model, name: str, featulizer):
+    model.eval()
+
+    for filename in os.listdir(config.infer_path):
+        fname = config.infer_path + '/' + filename
+        audio = scipy.io.wavfile.read(fname)[1]
+
+        with torch.no_grad():
+            wav = torch.from_numpy(audio).to(config.device).unsqueeze(0)
+            mel = featulizer(wav)
+            wav_synt = model(mel)
+
+        wav_synt = wav_synt.cpu().numpy()[0]
+        scipy.io.wavfile.write("infer_res/"+name+'_'+filename, 22050, wav_synt)
