@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torch
 import scipy.io.wavfile
 import os
+import tqdm
 
 def prepare_model_loader_losses(config: ProcessConfig):
     featurizer = MelSpectrogram(MelSpectrogramConfig()).to(config.device)
@@ -52,6 +53,29 @@ def train_checkpoint(config: ProcessConfig, steps=100):
         if i % 50 == 0:
             print(i, gen_loss)
             eval(config, generator, str(i), featulizer)
+
+def train(config: ProcessConfig, epochs=50):
+    dataloader, featulizer, generator, optim_g = \
+        prepare_model_loader_losses(config)
+
+    os.system('rm -r eval')
+    os.system('mkdir eval')
+
+    for epoch in range(epochs):
+        i = 0
+        gloss = 0
+        for batch in tqdm.tqdm(dataloader):
+            loss_gen = train_batch(
+                config, batch, featulizer, generator, optim_g
+            )
+
+            gloss += loss_gen
+            if (i + 1) % 100 == 0:
+                eval(config, generator, str(batch).zfill(3)+'_'+str(i).zfill(5))
+                print("Step:", i + 1, end=' ')
+                print("Generator loss:", gloss/100, end=' ')
+                gloss = 0
+            i += 1
 
 def eval(config: ProcessConfig, model, name: str, featulizer):
     model.eval()

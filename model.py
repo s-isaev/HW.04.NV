@@ -58,9 +58,11 @@ class UpsampleBlock(torch.nn.Module):
 
     def forward(self, x):
         x = F.leaky_relu(self.convt(x))
-        x_res = torch.zeros(x.shape).to(self.device)
-        for resblock in self.resblocks:
-            x_res = x_res + resblock(x)/self.n_res_blocks
+        for i, resblock in enumerate(self.resblocks):
+            if i == 0:
+                x_res = resblock(x)/self.n_res_blocks
+            else:
+                x_res = x_res + resblock(x)/self.n_res_blocks
         return x_res
 
 class Generator(torch.nn.Module):
