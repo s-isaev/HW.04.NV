@@ -1,5 +1,7 @@
 class ProcessConfig:
-    def __init__(self, datapath, batch_size, device, hidden, n_res_blocks, n_res_subblocks, len_res_subblock, infer_path, project, entity) -> None:
+    def __init__(
+        self, datapath, batch_size, device, hidden, n_res_blocks, n_res_subblocks, 
+        len_res_subblock, infer_path, project, entity, model_path) -> None:
         self.datapath = datapath
         self.batch_size = batch_size
         self.device = device
@@ -10,3 +12,4 @@ class ProcessConfig:
         self.infer_path = infer_path
         self.project = project
         self.entity = entity
+        self.model_path = model_path

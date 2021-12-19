@@ -12,12 +12,16 @@ import os
 import tqdm
 import wandb
 
-def prepare_model_loader_losses(config: ProcessConfig):
+def prepare_model_loader_losses(config: ProcessConfig, ignore_dataset=False):
     featurizer = MelSpectrogram(MelSpectrogramConfig()).to(config.device)
-    dataset = LJSpeechDataset(config.datapath)
-    collator = LJSpeechCollator()
-    dataloader = DataLoader(
-        dataset, batch_size=config.batch_size, collate_fn=collator)
+
+    dataloader = None
+    if ignore_dataset:
+        dataset = LJSpeechDataset(config.datapath)
+        collator = LJSpeechCollator()
+        dataloader = DataLoader(
+            dataset, batch_size=config.batch_size, collate_fn=collator
+        )
 
     generator = Generator(config).to(config.device)
     optim_g = torch.optim.AdamW(generator.parameters(), lr=0.0002, betas=[0.8, 0.99])
@@ -124,6 +128,9 @@ def train(config: ProcessConfig, epochs=50):
                 wandb.log({"discriminator_loss": dloss/100}, step=int(i+1))
                 gloss = 0
                 dloss = 0
+
+            if i % 500 == 0:
+                torch.save(generator.state_dict(), config.model_path+'/'+str(i).zfill(7)+".pth")
             i += 1
 
 def eval(config: ProcessConfig, model, name: str, featulizer, step=None):
@@ -139,10 +146,11 @@ def eval(config: ProcessConfig, model, name: str, featulizer, step=None):
 
     for i in range(wavs.shape[0]):
         wav = wavs[i].cpu().numpy()
-        wandb.log(
-            {"lg_audio_"+str(i): wandb.Audio(wav, sample_rate=22050)},
-            step=step+1
-        )
+        if step is not None:
+            wandb.log(
+                {"lg_audio_"+str(i): wandb.Audio(wav, sample_rate=22050)},
+                step=step+1
+            )
         scipy.io.wavfile.write("eval/"+name+'_'+str(i) + '.wav', 22050, wav)
 
 def infer(config: ProcessConfig, model, name: str, featulizer, step=None):
@@ -158,8 +166,9 @@ def infer(config: ProcessConfig, model, name: str, featulizer, step=None):
             wav_synt = model(mel)
 
         wav_synt = wav_synt.cpu().numpy()[0]
-        wandb.log(
-            {filename: wandb.Audio(wav_synt, sample_rate=22050)},
-            step=step+1
-        )
+        if step is not None:
+            wandb.log(
+                {filename: wandb.Audio(wav_synt, sample_rate=22050)},
+                step=step+1
+            )
         scipy.io.wavfile.write("infer_res/"+name+'_'+filename, 22050, wav_synt)
