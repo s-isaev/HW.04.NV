@@ -16,7 +16,7 @@ def prepare_model_loader_losses(config: ProcessConfig, ignore_dataset=False):
     featurizer = MelSpectrogram(MelSpectrogramConfig()).to(config.device)
 
     dataloader = None
-    if ignore_dataset:
+    if not ignore_dataset:
         dataset = LJSpeechDataset(config.datapath)
         collator = LJSpeechCollator()
         dataloader = DataLoader(
