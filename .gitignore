@@ -7,3 +7,4 @@ waveglow
 wandb
 models
 *.pth
+*.docx
