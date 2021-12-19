@@ -1,4 +1,5 @@
 from librosa.filters import mel
+from numpy import dtype
 from torch import optim
 from config import ProcessConfig
 from dataset import MelSpectrogramConfig, MelSpectrogram, LJSpeechDataset, LJSpeechCollator
@@ -162,6 +163,8 @@ def infer(config: ProcessConfig, model, name: str, featulizer, step=None):
 
         with torch.no_grad():
             wav = torch.from_numpy(audio).to(config.device).unsqueeze(0)
+            if wav.dtype == torch.int16:
+                wav = wav/wav.abs().max()
             mel = featulizer(wav)
             wav_synt = model(mel)
 

@@ -1,0 +1,8 @@
+librosa==0.8.1
+numpy==1.20.0
+scipy==1.7.1
+torch==1.10.1+cu113
+torchaudio==0.10.1+cu113
+tqdm==4.62.3
+googledrivedownloader
+wandb
