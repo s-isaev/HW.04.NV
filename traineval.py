@@ -10,6 +10,7 @@ import torch
 import scipy.io.wavfile
 import os
 import tqdm
+import wandb
 
 def prepare_model_loader_losses(config: ProcessConfig):
     featurizer = MelSpectrogram(MelSpectrogramConfig()).to(config.device)
@@ -37,7 +38,7 @@ def train_batch(config: ProcessConfig, batch, featurizer, generator, optim_g, di
     wavs_estimated = generator(mels)
     mels_estimated = featurizer(wavs_estimated)[:,:,:mels.shape[2]]
 
-    size = config.batch_size
+    size = wavs.shape[0]
     label = torch.full((size,), real_label, dtype=torch.float, device=config.device)
 
 
@@ -86,6 +87,8 @@ def train(config: ProcessConfig, epochs=50):
     dataloader, featulizer, generator, optim_g, disc, optim_d = \
         prepare_model_loader_losses(config)
 
+    wandb.init(project=config.project, entity=config.entity)
+
     os.system('rm -r eval')
     os.system('mkdir eval')
     os.system('rm -r infer_res')
@@ -106,22 +109,24 @@ def train(config: ProcessConfig, epochs=50):
                 infer(
                     config, generator,
                     str(epoch).zfill(3)+'_'+str(i+1).zfill(7),
-                    featulizer
+                    featulizer, step=i
                 )
                 eval(
                     config, generator, 
                     str(epoch).zfill(3)+'_'+str(i+1).zfill(7),
-                    featulizer
+                    featulizer, step=i
                 )
-                print("Step:", i + 1, end=' ')
-                print("Generator loss:", gloss/100, end=' ')
-                print("Disc loss:", dloss/100, end=' ')
-                print()
+                # print("Step:", i + 1, end=' ')
+                # print("Generator loss:", gloss/100, end=' ')
+                # print("Disc loss:", dloss/100, end=' ')
+                # print()
+                wandb.log({"generator_loss": gloss/100}, step=int(i+1))
+                wandb.log({"discriminator_loss": dloss/100}, step=int(i+1))
                 gloss = 0
                 dloss = 0
             i += 1
 
-def eval(config: ProcessConfig, model, name: str, featulizer):
+def eval(config: ProcessConfig, model, name: str, featulizer, step=None):
     model.eval()
     dataset = LJSpeechDataset(config.datapath)
     collator = LJSpeechCollator()
@@ -134,9 +139,13 @@ def eval(config: ProcessConfig, model, name: str, featulizer):
 
     for i in range(wavs.shape[0]):
         wav = wavs[i].cpu().numpy()
+        wandb.log(
+            {"lg_audio_"+str(i): wandb.Audio(wav, sample_rate=22050)},
+            step=step+1
+        )
         scipy.io.wavfile.write("eval/"+name+'_'+str(i) + '.wav', 22050, wav)
 
-def infer(config: ProcessConfig, model, name: str, featulizer):
+def infer(config: ProcessConfig, model, name: str, featulizer, step=None):
     model.eval()
 
     for filename in os.listdir(config.infer_path):
@@ -149,4 +158,8 @@ def infer(config: ProcessConfig, model, name: str, featulizer):
             wav_synt = model(mel)
 
         wav_synt = wav_synt.cpu().numpy()[0]
+        wandb.log(
+            {filename: wandb.Audio(wav_synt, sample_rate=22050)},
+            step=step+1
+        )
         scipy.io.wavfile.write("infer_res/"+name+'_'+filename, 22050, wav_synt)

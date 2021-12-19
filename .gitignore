@@ -4,3 +4,4 @@ LJSpeech-1.1.tar.bz2
 waveglow_256channels_universal_v5.pt
 waveglow
 *.wav
+wandb
